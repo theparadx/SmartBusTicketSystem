@@ -1,0 +1,86 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  mobile    String?
+  gender    String?
+  wallet    Wallet?
+  tickets   Ticket[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Conductor {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  mobile    String?
+  gender    String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  validations TicketValidation[]
+}
+
+model Wallet {
+  id           String              @id @default(uuid())
+  userId       String              @unique
+  user         User                @relation(fields: [userId], references: [id])
+  balance      Float               @default(0.0)
+  transactions WalletTransaction[]
+  createdAt    DateTime            @default(now())
+  updatedAt    DateTime            @updatedAt
+}
+
+model WalletTransaction {
+  id        String   @id @default(uuid())
+  walletId  String
+  wallet    Wallet   @relation(fields: [walletId], references: [id])
+  type      String   // DEPOSIT, WITHDRAW, TICKET_PAYMENT
+  amount    Float
+  createdAt DateTime @default(now())
+}
+
+model Route {
+  id          String   @id @default(uuid())
+  source      String
+  destination String
+  distanceKm  Float
+  baseFare    Float
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model Ticket {
+  id            String             @id @default(uuid())
+  userId        String?            // Null if manual ticket
+  user          User?              @relation(fields: [userId], references: [id])
+  source        String
+  destination   String
+  busType       String             // AC, NON_AC
+  fare          Float
+  status        String             // ACTIVE, IN_USE, EXPIRED, INVALID
+  qrToken       String?            @unique // Token for QR code
+  createdAt     DateTime           @default(now())
+  expiresAt     DateTime?          // createdAt + 3 hours
+  validations   TicketValidation[]
+}
+
+model TicketValidation {
+  id          String    @id @default(uuid())
+  ticketId    String
+  ticket      Ticket    @relation(fields: [ticketId], references: [id])
+  conductorId String
+  conductor   Conductor @relation(fields: [conductorId], references: [id])
+  scannedAt   DateTime  @default(now())
+}
